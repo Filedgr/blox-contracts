@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
@@ -18,7 +17,11 @@ interface IERC20 {
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 
     /**
      * @dev Returns the value of tokens in existence.
@@ -46,7 +49,10 @@ interface IERC20 {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
 
     /**
      * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
@@ -74,9 +80,12 @@ interface IERC20 {
      *
      * Emits a {Transfer} event.
      */
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
 }
-
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -122,7 +131,6 @@ abstract contract Context {
     }
 }
 
-
 /**
  * @dev Standard ERC20 Errors
  * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ERC-6093] custom errors for ERC20 tokens.
@@ -134,7 +142,11 @@ interface IERC20Errors {
      * @param balance Current balance for the interacting account.
      * @param needed Minimum amount required to perform a transfer.
      */
-    error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
+    error ERC20InsufficientBalance(
+        address sender,
+        uint256 balance,
+        uint256 needed
+    );
 
     /**
      * @dev Indicates a failure with the token `sender`. Used in transfers.
@@ -154,7 +166,11 @@ interface IERC20Errors {
      * @param allowance Amount of tokens a `spender` is allowed to operate with.
      * @param needed Minimum amount required to perform a transfer.
      */
-    error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
+    error ERC20InsufficientAllowance(
+        address spender,
+        uint256 allowance,
+        uint256 needed
+    );
 
     /**
      * @dev Indicates a failure with the `approver` of a token to be approved. Used in approvals.
@@ -191,7 +207,8 @@ interface IERC20Errors {
 abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
     mapping(address account => uint256) private _balances;
 
-    mapping(address account => mapping(address spender => uint256)) private _allowances;
+    mapping(address account => mapping(address spender => uint256))
+        private _allowances;
 
     uint256 private _totalSupply;
 
@@ -272,7 +289,10 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender) public view virtual returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) public view virtual returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -286,7 +306,10 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 value) public virtual returns (bool) {
+    function approve(
+        address spender,
+        uint256 value
+    ) public virtual returns (bool) {
         address owner = _msgSender();
         _approve(owner, spender, value);
         return true;
@@ -308,7 +331,11 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      * - the caller must have allowance for ``from``'s tokens of at least
      * `value`.
      */
-    function transferFrom(address from, address to, uint256 value) public virtual returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) public virtual returns (bool) {
         address spender = _msgSender();
         _spendAllowance(from, spender, value);
         _transfer(from, to, value);
@@ -438,7 +465,12 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * Requirements are the same as {_approve}.
      */
-    function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual {
+    function _approve(
+        address owner,
+        address spender,
+        uint256 value,
+        bool emitEvent
+    ) internal virtual {
         if (owner == address(0)) {
             revert ERC20InvalidApprover(address(0));
         }
@@ -459,11 +491,19 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
      *
      * Does not emit an {Approval} event.
      */
-    function _spendAllowance(address owner, address spender, uint256 value) internal virtual {
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 value
+    ) internal virtual {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
             if (currentAllowance < value) {
-                revert ERC20InsufficientAllowance(spender, currentAllowance, value);
+                revert ERC20InsufficientAllowance(
+                    spender,
+                    currentAllowance,
+                    value
+                );
             }
             unchecked {
                 _approve(owner, spender, currentAllowance - value, false);
@@ -497,7 +537,10 @@ abstract contract Ownable is Context {
      */
     error OwnableInvalidOwner(address owner);
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     /**
      * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
@@ -580,7 +623,10 @@ abstract contract Ownable is Context {
 abstract contract Ownable2Step is Ownable {
     address private _pendingOwner;
 
-    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferStarted(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     /**
      * @dev Returns the address of the pending owner.
@@ -593,7 +639,9 @@ abstract contract Ownable2Step is Ownable {
      * @dev Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one.
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public virtual override onlyOwner {
+    function transferOwnership(
+        address newOwner
+    ) public virtual override onlyOwner {
         _pendingOwner = newOwner;
         emit OwnershipTransferStarted(owner(), newOwner);
     }
@@ -628,7 +676,11 @@ contract GoldBackedToken is ERC20, Ownable2Step {
     address public minter;
     /// @notice redeem authority
     address public redeemer;
-    
+    /// @notice DAO fund wallet address
+    address public daoFundWallet;
+    /// @notice DAO fund fee percentage (with 2 decimals: 10 = 0.1%)
+    uint256 public daoFundFee;
+
     ///CUSTOM ERRORS///
     error OnlyMintAuthority();
     error OnlyRedeemAuthority();
@@ -637,23 +689,53 @@ contract GoldBackedToken is ERC20, Ownable2Step {
     error ZeroAddress();
     error AlreadyBlacklisted();
     error NotInBlacklist();
-    
-    /// @notice initialize the gold backed token and 
+    error FeeTooBig();
+
+    /// @notice Events for fee and wallet changes
+    event DAOFundFeeUpdated(uint256 oldFee, uint256 newFee);
+    event DAOFundWalletUpdated(address oldWallet, address newWallet);
+
+    /// @notice initialize the gold backed token and
     /// assign the owner, minter, redeemer roles
     constructor() ERC20("GOLD BACKED TOKEN", "GBT") Ownable(msg.sender) {
         minter = msg.sender;
         redeemer = msg.sender;
+        daoFundWallet = msg.sender; // Initially set to owner
+        daoFundFee = 10; // 0.1% (10 = 0.1%)
     }
-    
-    
+
     /// @notice token decimals
     function decimals() public pure override returns (uint8) {
         return 6;
     }
-    
+
+    /// @notice Set new DAO fund fee
+    /// @param newFee New fee value (10 = 0.1%)
+    function setDAOFundFee(uint256 newFee) external onlyOwner {
+        if (newFee > 1000) revert FeeTooBig(); // Max 10%
+        uint256 oldFee = daoFundFee;
+        daoFundFee = newFee;
+        emit DAOFundFeeUpdated(oldFee, newFee);
+    }
+
+    /// @notice Set new DAO fund wallet
+    /// @param newWallet New wallet address
+    function setDAOFundWallet(address newWallet) external onlyOwner {
+        if (newWallet == address(0)) revert ZeroAddress();
+        address oldWallet = daoFundWallet;
+        daoFundWallet = newWallet;
+        emit DAOFundWalletUpdated(oldWallet, newWallet);
+    }
+
+    /// @dev Calculate fee amount
+    /// @param amount Amount to calculate fee for
+    function calculateFee(uint256 amount) public view returns (uint256) {
+        return (amount * daoFundFee) / 10000;
+    }
+
     /// @notice burn the tokens from supply
     /// @param amount: amount to burn
-    function burn (uint256 amount) external onlyOwner {
+    function burn(uint256 amount) external onlyOwner {
         _burn(msg.sender, amount);
     }
 
@@ -664,7 +746,11 @@ contract GoldBackedToken is ERC20, Ownable2Step {
         if (msg.sender != minter) {
             revert OnlyMintAuthority();
         }
-        _mint(to, amount);
+        uint256 feeAmount = calculateFee(amount);
+        if (feeAmount > 0) {
+            _mint(daoFundWallet, feeAmount);
+        }
+        _mint(to, amount - feeAmount);
     }
 
     /// @dev redeem the tokens for actual gold / fiat value
@@ -675,63 +761,77 @@ contract GoldBackedToken is ERC20, Ownable2Step {
     /// Requirements
     /// account must approve the amount to the redeemer, that
     /// they want to redeem.
-    function redeem (address account, uint256 amount) external {
-        if(msg.sender != redeemer){revert OnlyRedeemAuthority();}
-         _spendAllowance(account, msg.sender, amount);
+    function redeem(address account, uint256 amount) external {
+        if (msg.sender != redeemer) {
+            revert OnlyRedeemAuthority();
+        }
+        _spendAllowance(account, msg.sender, amount);
         _burn(account, amount);
-       
     }
 
-    
     /// @dev destroy blocked funds from the supply
     /// @param blacklistedWallet: blacklisted wallet address
-    function destroyBlockedFunds(address blacklistedWallet)
-        external
-        onlyOwner
-    {
+    function destroyBlockedFunds(address blacklistedWallet) external onlyOwner {
         if (!isBlacklisted[blacklistedWallet]) {
             revert WalletIsNotBlacklisted();
         }
         uint256 amount = balanceOf(blacklistedWallet);
         _burn(blacklistedWallet, amount);
     }
-    
+
     /// @dev set new minter module / authority
     /// @param newMinter: new minter address
 
-    function setMintingAuthority(address newMinter) external  onlyOwner {
-        if(newMinter == address(0)){revert ZeroAddress();}
+    function setMintingAuthority(address newMinter) external onlyOwner {
+        if (newMinter == address(0)) {
+            revert ZeroAddress();
+        }
         minter = newMinter;
     }
-    
+
     /// @dev set new redeem mdoule / authority
     /// @param newRedeemer: new redeem module / authority
-    function setRedeemingAuthority (address newRedeemer) external onlyOwner {
-        if(newRedeemer == address(0)){revert ZeroAddress();}
+    function setRedeemingAuthority(address newRedeemer) external onlyOwner {
+        if (newRedeemer == address(0)) {
+            revert ZeroAddress();
+        }
         redeemer = newRedeemer;
     }
 
     /// @dev blacklist illicit wallet
     /// @param  account: wallet address of illicit funds
-    function blacklist(address account) external  onlyOwner {
-        if(isBlacklisted[account]){revert AlreadyBlacklisted();}
+    function blacklist(address account) external onlyOwner {
+        if (isBlacklisted[account]) {
+            revert AlreadyBlacklisted();
+        }
         isBlacklisted[account] = true;
     }
-    
+
     /// @dev remove from blacklist if set accidently
     /// @param account: wallet address of user
     function unBlacklist(address account) external onlyOwner {
-        if(!isBlacklisted[account]){revert NotInBlacklist();}
-        isBlacklisted[account]= false;
+        if (!isBlacklisted[account]) {
+            revert NotInBlacklist();
+        }
+        isBlacklisted[account] = false;
     }
 
     /// @dev claim  stucked erc20 from contract
     /// @param token: token address
     /// @param to: wallet in which funds will be rescued
     /// @param amount: token amount
-    function claimStuckedERC20(address token, address to, uint256 amount) external onlyOwner{
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, amount));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), 'ERC20: TOKEN_RESCUE_FAILED');
+    function claimStuckedERC20(
+        address token,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0xa9059cbb, to, amount)
+        );
+        require(
+            success && (data.length == 0 || abi.decode(data, (bool))),
+            "ERC20: TOKEN_RESCUE_FAILED"
+        );
     }
 
     /////////////////// Internal function ////////////////////
@@ -747,9 +847,17 @@ contract GoldBackedToken is ERC20, Ownable2Step {
             if (isBlacklisted[from] || isBlacklisted[to]) {
                 revert SenderOrReceiverIsBlacklisted();
             }
+
+            // Only apply fee for regular transfers (not minting/burning)
+            if (from != address(0) && to != address(0)) {
+                uint256 feeAmount = calculateFee(amount);
+                if (feeAmount > 0) {
+                    super._update(from, daoFundWallet, feeAmount);
+                    super._update(from, to, amount - feeAmount);
+                    return;
+                }
+            }
         }
         super._update(from, to, amount);
     }
-
-
 }
