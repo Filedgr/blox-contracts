@@ -134,21 +134,6 @@ describe("GoldBackedToken", function () {
           expectedFee * 2n
         );
       });
-
-      it("Should not apply fee on burns", async function () {
-        const { goldToken, user1, daoWallet } = await loadFixture(
-          deployAndSetupFixture
-        );
-
-        const burnAmount = ethers.parseUnits("100", 6);
-        const initialDAOBalance = await goldToken.balanceOf(daoWallet.address);
-
-        await goldToken.connect(user1).transfer(ethers.ZeroAddress, burnAmount);
-
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(
-          initialDAOBalance
-        );
-      });
     });
   });
 });

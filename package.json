@@ -4,7 +4,8 @@
     "test": "hardhat test",
     "compile": "hardhat clean && hardhat compile",
     "coverage": "hardhat coverage",
-    "typechain": "hardhat typechain"
+    "typechain": "hardhat typechain",
+    "coverage:ci": "hardhat coverage && node scripts/generate-badge.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
@@ -14,8 +15,10 @@
     "@typechain/hardhat": "^9.1.0",
     "@types/mocha": "^10.0.9",
     "@types/node": "^22.8.4",
+    "badge-maker": "^4.1.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.15",
+    "lcov-result-merger": "^5.0.1",
     "solidity-coverage": "^0.8.13",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
