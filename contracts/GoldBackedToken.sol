@@ -161,7 +161,7 @@ interface IERC20Errors {
     error ERC20InvalidReceiver(address receiver);
 
     /**
-     * @dev Indicates a failure with the `spender`’s `allowance`. Used in transfers.
+     * @dev Indicates a failure with the `spender`'s `allowance`. Used in transfers.
      * @param spender Address that may be allowed to operate on tokens without being their owner.
      * @param allowance Amount of tokens a `spender` is allowed to operate with.
      * @param needed Minimum amount required to perform a transfer.
@@ -680,6 +680,10 @@ contract GoldBackedToken is ERC20, Ownable2Step {
     address public daoFundWallet;
     /// @notice DAO fund fee percentage (with 2 decimals: 10 = 0.1%)
     uint256 public daoFundFee;
+    /// @notice gBT wallet address
+    address public gBTWallet;
+    /// @notice gBT fee percentage (with 2 decimals: 25 = 0.25%)
+    uint256 public gBTFee;
 
     ///CUSTOM ERRORS///
     error OnlyMintAuthority();
@@ -694,6 +698,8 @@ contract GoldBackedToken is ERC20, Ownable2Step {
     /// @notice Events for fee and wallet changes
     event DAOFundFeeUpdated(uint256 oldFee, uint256 newFee);
     event DAOFundWalletUpdated(address oldWallet, address newWallet);
+    event GBTFeeUpdated(uint256 oldFee, uint256 newFee);
+    event GBTWalletUpdated(address oldWallet, address newWallet);
 
     /// @notice initialize the gold backed token and
     /// assign the owner, minter, redeemer roles
@@ -702,6 +708,8 @@ contract GoldBackedToken is ERC20, Ownable2Step {
         redeemer = msg.sender;
         daoFundWallet = msg.sender; // Initially set to owner
         daoFundFee = 10; // 0.1% (10 = 0.1%)
+        gBTWallet = msg.sender; // Initially set to owner
+        gBTFee = 25; // 0.25% (25 = 0.25%)
     }
 
     /// @notice token decimals
@@ -727,10 +735,34 @@ contract GoldBackedToken is ERC20, Ownable2Step {
         emit DAOFundWalletUpdated(oldWallet, newWallet);
     }
 
-    /// @dev Calculate fee amount
+    /// @notice Set new gBT fee
+    /// @param newFee New fee value (25 = 0.25%)
+    function setGBTFee(uint256 newFee) external onlyOwner {
+        if (newFee > 1000) revert FeeTooBig(); // Max 10%
+        uint256 oldFee = gBTFee;
+        gBTFee = newFee;
+        emit GBTFeeUpdated(oldFee, newFee);
+    }
+
+    /// @notice Set new gBT wallet
+    /// @param newWallet New wallet address
+    function setGBTWallet(address newWallet) external onlyOwner {
+        if (newWallet == address(0)) revert ZeroAddress();
+        address oldWallet = gBTWallet;
+        gBTWallet = newWallet;
+        emit GBTWalletUpdated(oldWallet, newWallet);
+    }
+
+    /// @dev Calculate DAO fee amount
     /// @param amount Amount to calculate fee for
-    function calculateFee(uint256 amount) public view returns (uint256) {
+    function calculateDAOFee(uint256 amount) public view returns (uint256) {
         return (amount * daoFundFee) / 10000;
+    }
+
+    /// @dev Calculate gBT fee amount
+    /// @param amount Amount to calculate fee for
+    function calculateGBTFee(uint256 amount) public view returns (uint256) {
+        return (amount * gBTFee) / 10000;
     }
 
     /// @notice burn the tokens from supply
@@ -746,11 +778,19 @@ contract GoldBackedToken is ERC20, Ownable2Step {
         if (msg.sender != minter) {
             revert OnlyMintAuthority();
         }
-        uint256 feeAmount = calculateFee(amount);
-        if (feeAmount > 0) {
-            _mint(daoFundWallet, feeAmount);
+        uint256 daoFeeAmount = calculateDAOFee(amount);
+        uint256 gBTFeeAmount = calculateGBTFee(amount);
+        uint256 totalFees = daoFeeAmount + gBTFeeAmount;
+
+        if (daoFeeAmount > 0) {
+            _mint(daoFundWallet, daoFeeAmount);
         }
-        _mint(to, amount - feeAmount);
+
+        if (gBTFeeAmount > 0) {
+            _mint(gBTWallet, gBTFeeAmount);
+        }
+
+        _mint(to, amount - totalFees);
     }
 
     /// @dev redeem the tokens for actual gold / fiat value
@@ -781,7 +821,6 @@ contract GoldBackedToken is ERC20, Ownable2Step {
 
     /// @dev set new minter module / authority
     /// @param newMinter: new minter address
-
     function setMintingAuthority(address newMinter) external onlyOwner {
         if (newMinter == address(0)) {
             revert ZeroAddress();
@@ -850,10 +889,20 @@ contract GoldBackedToken is ERC20, Ownable2Step {
 
             // Only apply fee for regular transfers (not minting/burning)
             if (from != address(0) && to != address(0)) {
-                uint256 feeAmount = calculateFee(amount);
-                if (feeAmount > 0) {
-                    super._update(from, daoFundWallet, feeAmount);
-                    super._update(from, to, amount - feeAmount);
+                uint256 daoFeeAmount = calculateDAOFee(amount);
+                uint256 gBTFeeAmount = calculateGBTFee(amount);
+                uint256 totalFees = daoFeeAmount + gBTFeeAmount;
+
+                if (totalFees > 0) {
+                    if (daoFeeAmount > 0) {
+                        super._update(from, daoFundWallet, daoFeeAmount);
+                    }
+
+                    if (gBTFeeAmount > 0) {
+                        super._update(from, gBTWallet, gBTFeeAmount);
+                    }
+
+                    super._update(from, to, amount - totalFees);
                     return;
                 }
             }
