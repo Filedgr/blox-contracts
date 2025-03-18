@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { GoldBackedToken } from "../typechain-types";
+import { GoldBloxToken } from "../typechain-types";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -8,43 +8,13 @@ async function main() {
   const balance = await deployer.provider!.getBalance(deployer.address);
   console.log("Account balance:", ethers.formatEther(balance));
 
-  // Deploy GoldBackedToken
-  const GoldBackedTokenFactory = await ethers.getContractFactory(
-    "GoldBackedToken"
-  );
-  const token = (await GoldBackedTokenFactory.deploy()) as GoldBackedToken;
+  // Deploy GoldBloxToken
+  const GoldBloxTokenFactory = await ethers.getContractFactory("GoldBloxToken");
+  const token = (await GoldBloxTokenFactory.deploy()) as GoldBloxToken;
   await token.waitForDeployment();
 
   const tokenAddress = await token.getAddress();
-  console.log("GoldBackedToken deployed to:", tokenAddress);
-
-  // New address that will receive all roles
-  const NEW_OWNER = "0x9D242a7Bd77574AD65DB616701A51F10f0933C11";
-
-  console.log("\nTransferring all roles to:", NEW_OWNER);
-  console.log("-------------------");
-
-  // Transfer minter role
-  console.log("Setting new minting authority...");
-  const mintTx = await token.setMintingAuthority(NEW_OWNER);
-  await mintTx.wait();
-  console.log("Minting authority transferred");
-
-  // Transfer redeemer role
-  console.log("Setting new redeeming authority...");
-  const redeemTx = await token.setRedeemingAuthority(NEW_OWNER);
-  await redeemTx.wait();
-  console.log("Redeeming authority transferred");
-
-  // Initiate ownership transfer (2-step process)
-  console.log("Initiating ownership transfer...");
-  const transferTx = await token.transferOwnership(NEW_OWNER);
-  await transferTx.wait();
-  console.log("Ownership transfer initiated");
-  console.log(
-    "IMPORTANT: New owner must call acceptOwnership() to complete the transfer"
-  );
-
+  console.log("GoldBloxToken deployed to:", tokenAddress);
   // Print deployment summary
   console.log("\nDeployment Summary:");
   console.log("-------------------");
