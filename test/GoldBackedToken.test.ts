@@ -2,306 +2,240 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("GoldBackedToken", function () {
+describe("GoldBloxToken", function () {
   async function deployFixture() {
-    const [owner, user1, user2, daoWallet, gBLOXWallet] =
-      await ethers.getSigners();
+    const [owner, user1, user2] = await ethers.getSigners();
 
-    const GoldBackedToken = await ethers.getContractFactory("GoldBloxToken");
-    const goldToken = await GoldBackedToken.deploy();
+    const GoldBloxToken = await ethers.getContractFactory("GoldBloxToken");
+    const goldToken = await GoldBloxToken.deploy();
     await goldToken.getAddress();
 
-    return { goldToken, owner, user1, user2, daoWallet, gBLOXWallet };
+    return { goldToken, owner, user1, user2 };
   }
 
   async function deployAndSetupFixture() {
-    const { goldToken, owner, user1, user2, daoWallet, gBLOXWallet } =
-      await loadFixture(deployFixture);
+    const { goldToken, owner, user1, user2 } = await loadFixture(deployFixture);
 
-    // Setup initial state
-    await goldToken.setDAOFundWallet(daoWallet.address);
-    await goldToken.setGBLOXWallet(gBLOXWallet.address);
-    // Mint initial tokens to user1 without fees
-    await goldToken.setDAOFundFee(0);
-    await goldToken.setGBLOXFee(0);
+    // Mint initial tokens to user1
     await goldToken.mint(user1.address, ethers.parseUnits("1000", 6));
-    // Reset fees to default values
-    await goldToken.setDAOFundFee(10); // 0.1%
-    await goldToken.setGBLOXFee(25); // 0.25%
 
-    return { goldToken, owner, user1, user2, daoWallet, gBLOXWallet };
+    return { goldToken, owner, user1, user2 };
   }
 
   describe("Deployment", function () {
     it("Should initialize with correct default values", async function () {
       const { goldToken, owner } = await loadFixture(deployFixture);
 
-      expect(await goldToken.daoFundFee()).to.equal(10n); // 0.1%
-      expect(await goldToken.gBLOXFee()).to.equal(25n); // 0.25%
-      expect(await goldToken.daoFundWallet()).to.equal(owner.address);
-      expect(await goldToken.gBLOXWallet()).to.equal(owner.address);
       expect(await goldToken.owner()).to.equal(owner.address);
       expect(await goldToken.minter()).to.equal(owner.address);
       expect(await goldToken.redeemer()).to.equal(owner.address);
     });
   });
 
-  describe("Fee Management", function () {
-    describe("DAO Fund Fee Management", function () {
-      it("Should allow owner to change DAO fund fee", async function () {
-        const { goldToken } = await loadFixture(deployFixture);
-
-        await expect(goldToken.setDAOFundFee(20))
-          .to.emit(goldToken, "DAOFundFeeUpdated")
-          .withArgs(10n, 20n);
-
-        expect(await goldToken.daoFundFee()).to.equal(20n);
-      });
-
-      it("Should not allow DAO fee greater than 10%", async function () {
-        const { goldToken } = await loadFixture(deployFixture);
-
-        await expect(
-          goldToken.setDAOFundFee(1001)
-        ).to.be.revertedWithCustomError(goldToken, "FeeTooBig");
-      });
-    });
-
-    describe("gBT Fee Management", function () {
-      it("Should allow owner to change gBT fee", async function () {
-        const { goldToken } = await loadFixture(deployFixture);
-
-        await expect(goldToken.setGBLOXFee(30))
-          .to.emit(goldToken, "GBLOXFeeUpdated")
-          .withArgs(25n, 30n);
-
-        expect(await goldToken.gBLOXFee()).to.equal(30n);
-      });
-
-      it("Should not allow gBT fee greater than 10%", async function () {
-        const { goldToken } = await loadFixture(deployFixture);
-
-        await expect(goldToken.setGBLOXFee(1001)).to.be.revertedWithCustomError(
-          goldToken,
-          "FeeTooBig"
-        );
-      });
-    });
-
-    describe("Wallet Management", function () {
-      it("Should allow owner to change DAO fund wallet", async function () {
-        const { goldToken, daoWallet, owner } = await loadFixture(
-          deployFixture
-        );
-
-        await expect(goldToken.setDAOFundWallet(daoWallet.address))
-          .to.emit(goldToken, "DAOFundWalletUpdated")
-          .withArgs(owner.address, daoWallet.address);
-
-        expect(await goldToken.daoFundWallet()).to.equal(daoWallet.address);
-      });
-
-      it("Should allow owner to change gBT wallet", async function () {
-        const { goldToken, gBLOXWallet, owner } = await loadFixture(
-          deployFixture
-        );
-
-        await expect(goldToken.setGBLOXWallet(gBLOXWallet.address))
-          .to.emit(goldToken, "GBLOXWalletUpdated")
-          .withArgs(owner.address, gBLOXWallet.address);
-
-        expect(await goldToken.gBLOXWallet()).to.equal(gBLOXWallet.address);
-      });
-
-      it("Should not allow setting zero address as DAO fund wallet", async function () {
-        const { goldToken } = await loadFixture(deployFixture);
-
-        await expect(
-          goldToken.setDAOFundWallet(ethers.ZeroAddress)
-        ).to.be.revertedWithCustomError(goldToken, "ZeroAddress");
-      });
-
-      it("Should not allow setting zero address as gBT wallet", async function () {
-        const { goldToken } = await loadFixture(deployFixture);
-
-        await expect(
-          goldToken.setGBLOXWallet(ethers.ZeroAddress)
-        ).to.be.revertedWithCustomError(goldToken, "ZeroAddress");
-      });
-    });
-  });
-
   describe("Token Operations", function () {
     describe("Minting", function () {
-      it("Should apply both fees when minting", async function () {
-        const { goldToken, user1, daoWallet, gBLOXWallet } = await loadFixture(
-          deployFixture
-        );
-
-        await goldToken.setDAOFundWallet(daoWallet.address);
-        await goldToken.setGBLOXWallet(gBLOXWallet.address);
-        const mintAmount = ethers.parseUnits("1000", 6);
-        const expectedDAOFee = (mintAmount * 10n) / 10000n; // 0.1%
-        const expectedGBLOXFee = (mintAmount * 25n) / 10000n; // 0.25%
-        const totalFees = expectedDAOFee + expectedGBLOXFee;
-
-        await goldToken.mint(user1.address, mintAmount);
-
-        expect(await goldToken.balanceOf(user1.address)).to.equal(
-          mintAmount - totalFees
-        );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(
-          expectedDAOFee
-        );
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(
-          expectedGBLOXFee
-        );
-      });
-
-      it("Should not apply fees when both fees are set to zero", async function () {
+      it("Should mint tokens correctly", async function () {
         const { goldToken, user1 } = await loadFixture(deployFixture);
 
-        await goldToken.setDAOFundFee(0);
-        await goldToken.setGBLOXFee(0);
         const mintAmount = ethers.parseUnits("1000", 6);
-
         await goldToken.mint(user1.address, mintAmount);
 
         expect(await goldToken.balanceOf(user1.address)).to.equal(mintAmount);
       });
 
-      it("Should apply only DAO fee when gBT fee is zero", async function () {
-        const { goldToken, user1, daoWallet, gBLOXWallet } = await loadFixture(
-          deployFixture
-        );
-
-        await goldToken.setDAOFundWallet(daoWallet.address);
-        await goldToken.setGBLOXWallet(gBLOXWallet.address);
-        await goldToken.setGBLOXFee(0);
+      it("Should only allow minter to mint tokens", async function () {
+        const { goldToken, user1, user2 } = await loadFixture(deployFixture);
 
         const mintAmount = ethers.parseUnits("1000", 6);
-        const expectedDAOFee = (mintAmount * 10n) / 10000n; // 0.1%
 
-        await goldToken.mint(user1.address, mintAmount);
-
-        expect(await goldToken.balanceOf(user1.address)).to.equal(
-          mintAmount - expectedDAOFee
-        );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(
-          expectedDAOFee
-        );
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(0n);
-      });
-
-      it("Should apply only gBT fee when DAO fee is zero", async function () {
-        const { goldToken, user1, daoWallet, gBLOXWallet } = await loadFixture(
-          deployFixture
-        );
-
-        await goldToken.setDAOFundWallet(daoWallet.address);
-        await goldToken.setGBLOXWallet(gBLOXWallet.address);
-        await goldToken.setDAOFundFee(0);
-
-        const mintAmount = ethers.parseUnits("1000", 6);
-        const expectedGBLOXFee = (mintAmount * 25n) / 10000n; // 0.25%
-
-        await goldToken.mint(user1.address, mintAmount);
-
-        expect(await goldToken.balanceOf(user1.address)).to.equal(
-          mintAmount - expectedGBLOXFee
-        );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(0n);
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(
-          expectedGBLOXFee
-        );
+        await expect(
+          goldToken.connect(user1).mint(user2.address, mintAmount)
+        ).to.be.revertedWithCustomError(goldToken, "OnlyMintAuthority");
       });
     });
 
     describe("Transfers", function () {
-      it("Should apply both fees when transferring", async function () {
-        const { goldToken, user1, user2, daoWallet, gBLOXWallet } =
-          await loadFixture(deployAndSetupFixture);
+      it("Should transfer tokens correctly", async function () {
+        const { goldToken, user1, user2 } = await loadFixture(
+          deployAndSetupFixture
+        );
 
         const transferAmount = ethers.parseUnits("100", 6);
-        const expectedDAOFee = (transferAmount * 10n) / 10000n; // 0.1%
-        const expectedGBLOXFee = (transferAmount * 25n) / 10000n; // 0.25%
-        const totalFees = expectedDAOFee + expectedGBLOXFee;
-
         await goldToken.connect(user1).transfer(user2.address, transferAmount);
 
         expect(await goldToken.balanceOf(user2.address)).to.equal(
-          transferAmount - totalFees
+          transferAmount
         );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(
-          expectedDAOFee
-        );
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(
-          expectedGBLOXFee
+        expect(await goldToken.balanceOf(user1.address)).to.equal(
+          ethers.parseUnits("900", 6)
         );
       });
 
-      it("Should handle multiple transfers correctly with both fees", async function () {
-        const { goldToken, user1, user2, daoWallet, gBLOXWallet } =
-          await loadFixture(deployAndSetupFixture);
+      it("Should handle multiple transfers correctly", async function () {
+        const { goldToken, user1, user2 } = await loadFixture(
+          deployAndSetupFixture
+        );
 
         const transferAmount = ethers.parseUnits("100", 6);
-        const expectedDAOFee = (transferAmount * 10n) / 10000n; // 0.1%
-        const expectedGBLOXFee = (transferAmount * 25n) / 10000n; // 0.25%
-        const totalFees = expectedDAOFee + expectedGBLOXFee;
-
         await goldToken.connect(user1).transfer(user2.address, transferAmount);
         await goldToken.connect(user1).transfer(user2.address, transferAmount);
 
         expect(await goldToken.balanceOf(user2.address)).to.equal(
-          transferAmount * 2n - totalFees * 2n
+          transferAmount * 2n
         );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(
-          expectedDAOFee * 2n
-        );
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(
-          expectedGBLOXFee * 2n
+        expect(await goldToken.balanceOf(user1.address)).to.equal(
+          ethers.parseUnits("800", 6)
         );
       });
 
-      it("Should apply only DAO fee when gBT fee is zero", async function () {
-        const { goldToken, user1, user2, daoWallet, gBLOXWallet } =
-          await loadFixture(deployAndSetupFixture);
+      it("Should not allow transfer if sender is blacklisted", async function () {
+        const { goldToken, user1, user2 } = await loadFixture(
+          deployAndSetupFixture
+        );
 
-        await goldToken.setGBLOXFee(0);
-
+        await goldToken.blacklist(user1.address);
         const transferAmount = ethers.parseUnits("100", 6);
-        const expectedDAOFee = (transferAmount * 10n) / 10000n; // 0.1%
 
-        await goldToken.connect(user1).transfer(user2.address, transferAmount);
-
-        expect(await goldToken.balanceOf(user2.address)).to.equal(
-          transferAmount - expectedDAOFee
+        await expect(
+          goldToken.connect(user1).transfer(user2.address, transferAmount)
+        ).to.be.revertedWithCustomError(
+          goldToken,
+          "SenderOrReceiverIsBlacklisted"
         );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(
-          expectedDAOFee
-        );
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(0n);
       });
 
-      it("Should apply only gBT fee when DAO fee is zero", async function () {
-        const { goldToken, user1, user2, daoWallet, gBLOXWallet } =
-          await loadFixture(deployAndSetupFixture);
+      it("Should not allow transfer if receiver is blacklisted", async function () {
+        const { goldToken, user1, user2 } = await loadFixture(
+          deployAndSetupFixture
+        );
 
-        await goldToken.setDAOFundFee(0);
-
+        await goldToken.blacklist(user2.address);
         const transferAmount = ethers.parseUnits("100", 6);
-        const expectedGBLOXFee = (transferAmount * 25n) / 10000n; // 0.25%
 
-        await goldToken.connect(user1).transfer(user2.address, transferAmount);
-
-        expect(await goldToken.balanceOf(user2.address)).to.equal(
-          transferAmount - expectedGBLOXFee
-        );
-        expect(await goldToken.balanceOf(daoWallet.address)).to.equal(0n);
-        expect(await goldToken.balanceOf(gBLOXWallet.address)).to.equal(
-          expectedGBLOXFee
+        await expect(
+          goldToken.connect(user1).transfer(user2.address, transferAmount)
+        ).to.be.revertedWithCustomError(
+          goldToken,
+          "SenderOrReceiverIsBlacklisted"
         );
       });
+    });
+
+    describe("Burning", function () {
+      it("Should allow owner to burn tokens", async function () {
+        const { goldToken, owner } = await loadFixture(deployFixture);
+
+        const mintAmount = ethers.parseUnits("1000", 6);
+        await goldToken.mint(owner.address, mintAmount);
+        const burnAmount = ethers.parseUnits("500", 6);
+        await goldToken.burn(burnAmount);
+
+        expect(await goldToken.balanceOf(owner.address)).to.equal(
+          mintAmount - burnAmount
+        );
+      });
+    });
+
+    describe("Redeeming", function () {
+      it("Should allow redeemer to redeem tokens", async function () {
+        const { goldToken, user1 } = await loadFixture(deployAndSetupFixture);
+
+        const redeemAmount = ethers.parseUnits("100", 6);
+        await goldToken
+          .connect(user1)
+          .approve(await goldToken.redeemer(), redeemAmount);
+        await goldToken.redeem(user1.address, redeemAmount);
+
+        expect(await goldToken.balanceOf(user1.address)).to.equal(
+          ethers.parseUnits("900", 6)
+        );
+      });
+
+      it("Should only allow redeemer to redeem tokens", async function () {
+        const { goldToken, user1, user2 } = await loadFixture(
+          deployAndSetupFixture
+        );
+
+        const redeemAmount = ethers.parseUnits("100", 6);
+        await goldToken.connect(user1).approve(user2.address, redeemAmount);
+
+        await expect(
+          goldToken.connect(user2).redeem(user1.address, redeemAmount)
+        ).to.be.revertedWithCustomError(goldToken, "OnlyRedeemAuthority");
+      });
+    });
+  });
+
+  describe("Blacklisting", function () {
+    it("Should allow owner to blacklist an address", async function () {
+      const { goldToken, user1 } = await loadFixture(deployFixture);
+
+      await goldToken.blacklist(user1.address);
+      expect(await goldToken.isBlacklisted(user1.address)).to.be.true;
+    });
+
+    it("Should allow owner to unblacklist an address", async function () {
+      const { goldToken, user1 } = await loadFixture(deployFixture);
+
+      await goldToken.blacklist(user1.address);
+      expect(await goldToken.isBlacklisted(user1.address)).to.be.true;
+
+      await goldToken.unBlacklist(user1.address);
+      expect(await goldToken.isBlacklisted(user1.address)).to.be.false;
+    });
+
+    it("Should allow owner to destroy blacklisted funds", async function () {
+      const { goldToken, user1 } = await loadFixture(deployFixture);
+
+      const mintAmount = ethers.parseUnits("1000", 6);
+      await goldToken.mint(user1.address, mintAmount);
+      await goldToken.blacklist(user1.address);
+
+      await goldToken.destroyBlockedFunds(user1.address);
+      expect(await goldToken.balanceOf(user1.address)).to.equal(0);
+    });
+
+    it("Should not allow destroying funds from non-blacklisted addresses", async function () {
+      const { goldToken, user1 } = await loadFixture(deployFixture);
+
+      const mintAmount = ethers.parseUnits("1000", 6);
+      await goldToken.mint(user1.address, mintAmount);
+
+      await expect(
+        goldToken.destroyBlockedFunds(user1.address)
+      ).to.be.revertedWithCustomError(goldToken, "WalletIsNotBlacklisted");
+    });
+  });
+
+  describe("Authority Management", function () {
+    it("Should allow owner to change minting authority", async function () {
+      const { goldToken, user1 } = await loadFixture(deployFixture);
+
+      await goldToken.setMintingAuthority(user1.address);
+      expect(await goldToken.minter()).to.equal(user1.address);
+    });
+
+    it("Should allow owner to change redeeming authority", async function () {
+      const { goldToken, user1 } = await loadFixture(deployFixture);
+
+      await goldToken.setRedeemingAuthority(user1.address);
+      expect(await goldToken.redeemer()).to.equal(user1.address);
+    });
+
+    it("Should not allow setting zero address as minting authority", async function () {
+      const { goldToken } = await loadFixture(deployFixture);
+
+      await expect(
+        goldToken.setMintingAuthority(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(goldToken, "ZeroAddress");
+    });
+
+    it("Should not allow setting zero address as redeeming authority", async function () {
+      const { goldToken } = await loadFixture(deployFixture);
+
+      await expect(
+        goldToken.setRedeemingAuthority(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(goldToken, "ZeroAddress");
     });
   });
 });

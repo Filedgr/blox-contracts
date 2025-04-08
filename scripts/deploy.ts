@@ -27,8 +27,6 @@ async function main() {
   console.log("Pending Owner:", await token.pendingOwner());
   console.log("Minter:", await token.minter());
   console.log("Redeemer:", await token.redeemer());
-  console.log("DAO Fund Wallet:", await token.daoFundWallet());
-  console.log("DAO Fund Fee:", await token.daoFundFee());
 }
 
 main()

@@ -676,14 +676,6 @@ contract GoldBloxToken is ERC20, Ownable2Step {
     address public minter;
     /// @notice redeem authority
     address public redeemer;
-    /// @notice DAO fund wallet address
-    address public daoFundWallet;
-    /// @notice DAO fund fee percentage (with 2 decimals: 10 = 0.1%)
-    uint256 public daoFundFee;
-    /// @notice gBT wallet address
-    address public gBLOXWallet;
-    /// @notice gBT fee percentage (with 2 decimals: 25 = 0.25%)
-    uint256 public gBLOXFee;
 
     ///CUSTOM ERRORS///
     error OnlyMintAuthority();
@@ -693,76 +685,17 @@ contract GoldBloxToken is ERC20, Ownable2Step {
     error ZeroAddress();
     error AlreadyBlacklisted();
     error NotInBlacklist();
-    error FeeTooBig();
-
-    /// @notice Events for fee and wallet changes
-    event DAOFundFeeUpdated(uint256 oldFee, uint256 newFee);
-    event DAOFundWalletUpdated(address oldWallet, address newWallet);
-    event GBLOXFeeUpdated(uint256 oldFee, uint256 newFee);
-    event GBLOXWalletUpdated(address oldWallet, address newWallet);
 
     /// @notice initialize the GOLD BLOX and
     /// assign the owner, minter, redeemer roles
     constructor() ERC20("GOLD BLOX", "GBLOX") Ownable(msg.sender) {
         minter = msg.sender;
         redeemer = msg.sender;
-        daoFundWallet = msg.sender; // Initially set to owner
-        daoFundFee = 10; // 0.1% (10 = 0.1%)
-        gBLOXWallet = msg.sender; // Initially set to owner
-        gBLOXFee = 25; // 0.25% (25 = 0.25%)
     }
 
     /// @notice token decimals
     function decimals() public pure override returns (uint8) {
         return 6;
-    }
-
-    /// @notice Set new DAO fund fee
-    /// @param newFee New fee value (10 = 0.1%)
-    function setDAOFundFee(uint256 newFee) external onlyOwner {
-        if (newFee > 1000) revert FeeTooBig(); // Max 10%
-        uint256 oldFee = daoFundFee;
-        daoFundFee = newFee;
-        emit DAOFundFeeUpdated(oldFee, newFee);
-    }
-
-    /// @notice Set new DAO fund wallet
-    /// @param newWallet New wallet address
-    function setDAOFundWallet(address newWallet) external onlyOwner {
-        if (newWallet == address(0)) revert ZeroAddress();
-        address oldWallet = daoFundWallet;
-        daoFundWallet = newWallet;
-        emit DAOFundWalletUpdated(oldWallet, newWallet);
-    }
-
-    /// @notice Set new gBT fee
-    /// @param newFee New fee value (25 = 0.25%)
-    function setGBLOXFee(uint256 newFee) external onlyOwner {
-        if (newFee > 1000) revert FeeTooBig(); // Max 10%
-        uint256 oldFee = gBLOXFee;
-        gBLOXFee = newFee;
-        emit GBLOXFeeUpdated(oldFee, newFee);
-    }
-
-    /// @notice Set new gBT wallet
-    /// @param newWallet New wallet address
-    function setGBLOXWallet(address newWallet) external onlyOwner {
-        if (newWallet == address(0)) revert ZeroAddress();
-        address oldWallet = gBLOXWallet;
-        gBLOXWallet = newWallet;
-        emit GBLOXWalletUpdated(oldWallet, newWallet);
-    }
-
-    /// @dev Calculate DAO fee amount
-    /// @param amount Amount to calculate fee for
-    function calculateDAOFee(uint256 amount) public view returns (uint256) {
-        return (amount * daoFundFee) / 10000;
-    }
-
-    /// @dev Calculate gBT fee amount
-    /// @param amount Amount to calculate fee for
-    function calculateGBLOXFee(uint256 amount) public view returns (uint256) {
-        return (amount * gBLOXFee) / 10000;
     }
 
     /// @notice burn the tokens from supply
@@ -778,19 +711,7 @@ contract GoldBloxToken is ERC20, Ownable2Step {
         if (msg.sender != minter) {
             revert OnlyMintAuthority();
         }
-        uint256 daoFeeAmount = calculateDAOFee(amount);
-        uint256 gBLOXFeeAmount = calculateGBLOXFee(amount);
-        uint256 totalFees = daoFeeAmount + gBLOXFeeAmount;
-
-        if (daoFeeAmount > 0) {
-            _mint(daoFundWallet, daoFeeAmount);
-        }
-
-        if (gBLOXFeeAmount > 0) {
-            _mint(gBLOXWallet, gBLOXFeeAmount);
-        }
-
-        _mint(to, amount - totalFees);
+        _mint(to, amount);
     }
 
     /// @dev redeem the tokens for actual gold / fiat value
@@ -882,29 +803,9 @@ contract GoldBloxToken is ERC20, Ownable2Step {
         address to,
         uint256 amount
     ) internal override {
-        if (to != address(0)) {
+        if (from != address(0) && to != address(0)) {
             if (isBlacklisted[from] || isBlacklisted[to]) {
                 revert SenderOrReceiverIsBlacklisted();
-            }
-
-            // Only apply fee for regular transfers (not minting/burning)
-            if (from != address(0) && to != address(0)) {
-                uint256 daoFeeAmount = calculateDAOFee(amount);
-                uint256 gBLOXFeeAmount = calculateGBLOXFee(amount);
-                uint256 totalFees = daoFeeAmount + gBLOXFeeAmount;
-
-                if (totalFees > 0) {
-                    if (daoFeeAmount > 0) {
-                        super._update(from, daoFundWallet, daoFeeAmount);
-                    }
-
-                    if (gBLOXFeeAmount > 0) {
-                        super._update(from, gBLOXWallet, gBLOXFeeAmount);
-                    }
-
-                    super._update(from, to, amount - totalFees);
-                    return;
-                }
             }
         }
         super._update(from, to, amount);
