@@ -15,6 +15,7 @@ async function main() {
 
   const tokenAddress = await token.getAddress();
   console.log("GoldBloxToken deployed to:", tokenAddress);
+
   // Print deployment summary
   console.log("\nDeployment Summary:");
   console.log("-------------------");
@@ -27,6 +28,15 @@ async function main() {
   console.log("Pending Owner:", await token.pendingOwner());
   console.log("Minter:", await token.minter());
   console.log("Redeemer:", await token.redeemer());
+  console.log("\nFee Configuration:");
+  console.log("DAO Fund Wallet:", await token.daoFundWallet());
+  console.log(
+    "DAO Fund Fee:",
+    await token.daoFundFee(),
+    "basis points (0.01%)"
+  );
+  console.log("gBT Wallet:", await token.gBTWallet());
+  console.log("gBT Fee:", await token.gBTFee(), "basis points (0.01%)");
 }
 
 main()
