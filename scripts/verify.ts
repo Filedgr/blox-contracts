@@ -1,7 +1,7 @@
 import * as hre from "hardhat";
 
 async function main() {
-  const contractAddress = "0xAbB972FaE9B5579AC34e4E222C3916109Af77121";
+  const contractAddress = "0xa13c2A9d6BD3DD66b00F6C445dD2Dd4900C3a82F";
 
   console.log("Verifying contract...");
   try {

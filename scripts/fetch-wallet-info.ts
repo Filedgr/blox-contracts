@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 
 async function main() {
   // Contract address
-  const contractAddress = "0xAbB972FaE9B5579AC34e4E222C3916109Af77121";
+  const contractAddress = "0xa13c2A9d6BD3DD66b00F6C445dD2Dd4900C3a82F";
 
   try {
     // Get the contract instance
@@ -41,7 +41,7 @@ async function main() {
     console.log(
       `DAO Fund Wallet is set correctly: ${
         daoFundWallet.toLowerCase() ===
-        "0x4A0893674E2df7190316ff38FCB40CA037ef6EdC".toLowerCase()
+        "0x46cedB443f7C71D81DF763267b8E80a6794Ce031".toLowerCase()
       }`
     );
     console.log(

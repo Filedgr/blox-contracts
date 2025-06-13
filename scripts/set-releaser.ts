@@ -3,10 +3,10 @@ import { ethers } from "hardhat";
 
 async function main() {
   // Contract address - update this with your deployed contract address
-  const contractAddress = "0xYOUR_CONTRACT_ADDRESS_HERE";
+  const contractAddress = "0xa13c2A9d6BD3DD66b00F6C445dD2Dd4900C3a82F";
 
   // New releaser address
-  const newReleaser = "0xYOUR_RELEASER_ADDRESS_HERE";
+  const newReleaser = "0x60E983F827590f8879c2453c420b26Cb3e5eC2E6";
 
   console.log("Generating transaction data for setting releaser...");
 
